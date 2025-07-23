@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import logo from "/assets/openai-logomark.svg";
-import EventLog from "./EventLog";
+import logo from "/assets/ai_voice_generator.png";
+import aiLogo from "/assets/ai_voice_generator.png";
 import SessionControls from "./SessionControls";
-import ToolPanel from "./ToolPanel";
 
 export default function App() {
   const [isSessionActive, setIsSessionActive] = useState(false);
@@ -10,6 +9,7 @@ export default function App() {
   const [dataChannel, setDataChannel] = useState(null);
   const peerConnection = useRef(null);
   const audioElement = useRef(null);
+  const [assistantMessage, setAssistantMessage] = useState("Hello! I'm your AI voice assistant. Click 'start session' to begin.");
 
   async function startSession() {
     // Get a session token for OpenAI Realtime API
@@ -125,11 +125,23 @@ export default function App() {
   // Attach event listeners to the data channel when a new one is created
   useEffect(() => {
     if (dataChannel) {
-      // Append new server events to the list
+      // Process server events
       dataChannel.addEventListener("message", (e) => {
         const event = JSON.parse(e.data);
         if (!event.timestamp) {
           event.timestamp = new Date().toLocaleTimeString();
+        }
+
+        // Update assistant message if it's a text content
+        if (event.type === "conversation.item.delta" &&
+          event.delta?.content?.[0]?.type === "text_delta" &&
+          event.delta.content[0].text) {
+          setAssistantMessage(prev => prev + event.delta.content[0].text);
+        }
+
+        // For new responses, reset the assistant message
+        if (event.type === "response.create") {
+          setAssistantMessage("");
         }
 
         setEvents((prev) => [event, ...prev]);
@@ -148,27 +160,26 @@ export default function App() {
       <nav className="absolute top-0 left-0 right-0 h-16 flex items-center">
         <div className="flex items-center gap-4 w-full m-4 pb-2 border-0 border-b border-solid border-gray-200">
           <img style={{ width: "24px" }} src={logo} />
-          <h1>realtime console</h1>
+          <h1>AI Voice Assistant</h1>
         </div>
       </nav>
-      <main className="absolute top-16 left-0 right-0 bottom-0">
-        <section className="absolute top-0 left-0 right-[380px] bottom-0 flex">
-          <section className="absolute top-0 left-0 right-0 bottom-32 px-4 overflow-y-auto">
-            <EventLog events={events} />
-          </section>
-          <section className="absolute h-32 left-0 right-0 bottom-0 p-4">
-            <SessionControls
-              startSession={startSession}
-              stopSession={stopSession}
-              sendClientEvent={sendClientEvent}
-              sendTextMessage={sendTextMessage}
-              events={events}
-              isSessionActive={isSessionActive}
-            />
-          </section>
+      <main className="absolute top-16 left-0 right-0 bottom-0 bg-white">
+        <section className="absolute top-0 left-0 right-0 bottom-32 flex flex-col items-center justify-center">
+          <div className="flex flex-col items-center justify-center max-w-md text-center p-8">
+            <img src={aiLogo} alt="AI Assistant" className="w-32 h-32 mb-6" />
+            <h2 className="text-2xl font-bold mb-4">AI Voice Assistant</h2>
+            <p className="text-gray-600 mb-6">{assistantMessage}</p>
+            {isSessionActive && (
+              <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center animate-pulse">
+                <div className="w-8 h-8 rounded-full bg-green-400"></div>
+              </div>
+            )}
+          </div>
         </section>
-        <section className="absolute top-0 w-[380px] right-0 bottom-0 p-4 pt-0 overflow-y-auto">
-          <ToolPanel
+        <section className="absolute h-32 left-0 right-0 bottom-0 p-4">
+          <SessionControls
+            startSession={startSession}
+            stopSession={stopSession}
             sendClientEvent={sendClientEvent}
             sendTextMessage={sendTextMessage}
             events={events}
