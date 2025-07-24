@@ -4,8 +4,10 @@ import react from "@vitejs/plugin-react";
 
 const path = fileURLToPath(import.meta.url);
 
-export default ({ mode }) => {
+export default ({ mode, command }) => {
   const isSSR = mode === "ssr";
+  const isDev = command === "serve";
+  const isRender = process.env.RENDER === "true"; // 👈 Detect if running on Render
 
   return {
     root: join(dirname(path), "client"),
@@ -23,8 +25,17 @@ export default ({ mode }) => {
       ssr: isSSR ? join(dirname(path), "client/entry-server.jsx") : undefined,
     },
     server: {
-      allowedHosts: ['.onrender.com'], // ✅ Allow any Render host
-      host: true // ✅ Required to accept external traffic
-    }
+      host: true,
+      allowedHosts: ['.onrender.com'],
+      ...(isDev && isRender
+        ? {
+          hmr: {
+            protocol: 'wss',
+            host: 'ai-voice-assistant-8394.onrender.com',
+            port: 443,
+          },
+        }
+        : {})
+    },
   };
 };
