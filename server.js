@@ -18,10 +18,10 @@ async function startServer() {
       server: {
         middlewareMode: true,
         host: true, // ✅ Allow external connections (Render)
-        hmr: {
-          protocol: "wss", // ✅ Required for HTTPS on Render
-          port: 443,
-        },
+        // hmr: {
+        //   protocol: "wss", // ✅ Required for HTTPS on Render
+        //   port: 443,
+        // },
       },
       appType: "custom",
     });
