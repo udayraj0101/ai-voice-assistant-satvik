@@ -25,16 +25,7 @@ export default ({ mode, command }) => {
       ssr: isSSR ? join(dirname(path), "client/entry-server.jsx") : undefined,
     },
     server: {
-      host: true,
-      allowedHosts: ['.onrender.com'],
-      ...(isDev && isRender
-        ? {
-          hmr: {
-            protocol: 'wss',
-            host: 'ai-voice-assistant-8394.onrender.com',
-          },
-        }
-        : {})
+      host: true
     },
   };
 };
