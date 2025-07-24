@@ -151,6 +151,11 @@ export default function App() {
       dataChannel.addEventListener("open", () => {
         setIsSessionActive(true);
         setEvents([]);
+        
+        // Send an initial message to trigger the assistant's introduction
+        setTimeout(() => {
+          sendClientEvent({ type: "response.create" });
+        }, 1000);
       });
     }
   }, [dataChannel]);
