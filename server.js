@@ -12,34 +12,36 @@ const apiKey = process.env.OPENAI_API_KEY;
 const isDev = process.argv.includes("--dev");
 
 async function startServer() {
-  // Configure Vite middleware for development
   let vite;
   if (isDev) {
     vite = await createViteServer({
-      server: { middlewareMode: true },
+      server: {
+        middlewareMode: true,
+        host: true, // ✅ Allow external connections (Render)
+        hmr: {
+          protocol: "wss", // ✅ Required for HTTPS on Render
+          port: 443,
+        },
+      },
       appType: "custom",
     });
     app.use(vite.middlewares);
   } else {
-    // Serve static files in production
     app.use(express.static(path.resolve(__dirname, "dist/client")));
   }
 
-  // API route for token generation
   app.get("/token", async (req, res) => {
     try {
-      const response = await fetch(
-        "https://api.openai.com/v1/realtime/sessions",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${apiKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "gpt-4o-realtime-preview-2025-06-03",
-            voice: "shimmer",
-            instructions: `
+      const response = await fetch("https://api.openai.com/v1/realtime/sessions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "gpt-4o-realtime-preview-2025-06-03",
+          voice: "shimmer",
+          instructions: `
       You are Priya, a friendly and intelligent Indian salesperson for Mamaearth.
       Your goal: assist users by recommending Mamaearth products—but never force them.
       You speak in Hinglish, mixing Hindi & English naturally.
@@ -59,10 +61,9 @@ async function startServer() {
       - If user compares with other brands, explain pros and cons objectively but highlight unique Mamaearth advantages (e.g., Made Safe certified, toxin-free).
       - Always respect user's readiness—if they're unsure or decline, offer small suggestions or promotions like "20% off for first-time buyers" but never pushy.
       - End each sales pitch with a gentle offer: free samples, bundle deals, or discounted price.
-    `
-          }),
-        },
-      );
+    `,
+        }),
+      });
 
       const data = await response.json();
       res.json(data);
@@ -72,16 +73,13 @@ async function startServer() {
     }
   });
 
-  // Handle routes
   if (isDev) {
-    // Development: Use Vite's SSR
     app.use("*", async (req, res, next) => {
       const url = req.originalUrl;
-
       try {
         const template = await vite.transformIndexHtml(
           url,
-          fs.readFileSync("./client/index.html", "utf-8"),
+          fs.readFileSync("./client/index.html", "utf-8")
         );
         const { render } = await vite.ssrLoadModule("./client/entry-server.jsx");
         const appHtml = await render(url);
@@ -89,17 +87,30 @@ async function startServer() {
         res.status(200).set({ "Content-Type": "text/html" }).end(html);
       } catch (e) {
         vite.ssrFixStacktrace(e);
-        next(e);
+        console.error("SSR error in dev:", e);
+        res.status(500).end(e.message);
       }
     });
   } else {
-    // Production: Serve the static HTML
-    app.get("*", (req, res) => {
-      const indexHtml = fs.readFileSync(
-        path.resolve(__dirname, "dist/client/index.html"),
-        "utf-8"
-      );
-      res.send(indexHtml);
+    app.get("*", async (req, res) => {
+      const indexPath = path.resolve(__dirname, "dist/client/index.html");
+      const ssrEntryPath = path.resolve(__dirname, "dist/server/entry-server.js");
+
+      if (!fs.existsSync(indexPath) || !fs.existsSync(ssrEntryPath)) {
+        console.error("Required files not found:", { indexPath, ssrEntryPath });
+        return res.status(404).send("Required files not found");
+      }
+
+      try {
+        const template = fs.readFileSync(indexPath, "utf-8");
+        const { render } = await import(ssrEntryPath);
+        const appHtml = await render(req.originalUrl);
+        const html = template.replace(`<!--ssr-outlet-->`, appHtml?.html || "");
+        res.status(200).set({ "Content-Type": "text/html" }).end(html);
+      } catch (error) {
+        console.error("Error during SSR rendering:", error);
+        res.status(500).send("Internal Server Error");
+      }
     });
   }
 
