@@ -2,7 +2,7 @@ services:
   - type: web
     name: ai-voice-assistant
     env: node
-    buildCommand: npm install && npm run build:client
+    buildCommand: npm install && npm run build
     startCommand: npm start
     envVars:
       - key: OPENAI_API_KEY
