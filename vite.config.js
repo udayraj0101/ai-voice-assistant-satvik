@@ -32,7 +32,6 @@ export default ({ mode, command }) => {
           hmr: {
             protocol: 'wss',
             host: 'ai-voice-assistant-8394.onrender.com',
-            port: 443,
           },
         }
         : {})
