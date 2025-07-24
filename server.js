@@ -17,14 +17,12 @@ async function startServer() {
     vite = await createViteServer({
       server: {
         middlewareMode: true,
-        host: true, // ✅ Allow external connections (Render)
-        // hmr: {
-        //   protocol: "wss", // ✅ Required for HTTPS on Render
-        //   port: 443,
-        // },
+        host: 'localhost', // optional
       },
-      appType: "custom",
+      appType: 'custom',
     });
+
+
     app.use(vite.middlewares);
   } else {
     app.use(express.static(path.resolve(__dirname, "dist/client")));
