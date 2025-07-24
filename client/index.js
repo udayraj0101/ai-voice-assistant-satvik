@@ -1,8 +1,6 @@
-import routes from "/:routes.js";
-import create from "/:create.jsx";
-
+// Simple export for SSR
 export default {
-  context: import("/:context.js"),
-  routes,
-  create,
+  routes: [],
+  create: (props) => props.children,
+  context: Promise.resolve({}),
 };
