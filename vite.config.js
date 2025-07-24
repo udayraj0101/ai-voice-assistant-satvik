@@ -25,7 +25,8 @@ export default ({ mode, command }) => {
       ssr: isSSR ? join(dirname(path), "client/entry-server.jsx") : undefined,
     },
     server: {
-      host: true
+      host: true,
+      allowedHosts: ['.onrender.com'],
     },
   };
 };
