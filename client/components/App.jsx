@@ -10,12 +10,20 @@ export default function App() {
   const peerConnection = useRef(null);
   const audioElement = useRef(null);
   const [assistantMessage, setAssistantMessage] = useState("Hello! I'm your AI voice assistant. Click 'start session' to begin.");
+  const [sessionId, setSessionId] = useState(null);
 
   async function startSession() {
-    // Get a session token for OpenAI Realtime API
-    const tokenResponse = await fetch("/token");
-    const data = await tokenResponse.json();
-    const EPHEMERAL_KEY = data.client_secret.value;
+    try {
+      // Get a session token for OpenAI Realtime API
+      const tokenResponse = await fetch("/token");
+      const data = await tokenResponse.json();
+      
+      if (!data.client_secret?.value) {
+        throw new Error('Invalid token response');
+      }
+      
+      const EPHEMERAL_KEY = data.client_secret.value;
+      setSessionId(data.sessionId);
 
     // Create a peer connection
     const pc = new RTCPeerConnection();
@@ -57,27 +65,46 @@ export default function App() {
     await pc.setRemoteDescription(answer);
 
     peerConnection.current = pc;
+    } catch (error) {
+      console.error('Failed to start session:', error);
+      setAssistantMessage('Sorry, failed to start session. Please try again.');
+    }
   }
 
   // Stop current session, clean up peer connection and data channel
   function stopSession() {
+    // Log session end
+    if (sessionId) {
+      fetch('/end-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId })
+      })
+      .then(res => res.json())
+      .then(data => {
+        console.log('Session ended:', data);
+      })
+      .catch(err => console.error('Error ending session:', err));
+    }
+    
     if (dataChannel) {
       dataChannel.close();
     }
 
-    peerConnection.current.getSenders().forEach((sender) => {
-      if (sender.track) {
-        sender.track.stop();
-      }
-    });
-
     if (peerConnection.current) {
+      peerConnection.current.getSenders().forEach((sender) => {
+        if (sender.track) {
+          sender.track.stop();
+        }
+      });
       peerConnection.current.close();
     }
 
     setIsSessionActive(false);
     setDataChannel(null);
     peerConnection.current = null;
+    setSessionId(null);
+    setAssistantMessage("Session ended. Click 'start session' to begin a new conversation.");
   }
 
   // Send a message to the model
@@ -151,6 +178,7 @@ export default function App() {
       dataChannel.addEventListener("open", () => {
         setIsSessionActive(true);
         setEvents([]);
+        setAssistantMessage("Connected! I'm listening...");
         
         // Send an initial message to trigger the assistant's introduction
         setTimeout(() => {
@@ -163,9 +191,19 @@ export default function App() {
   return (
     <>
       <nav className="absolute top-0 left-0 right-0 h-16 flex items-center">
-        <div className="flex items-center gap-4 w-full m-4 pb-2 border-0 border-b border-solid border-gray-200">
-          <img style={{ width: "24px" }} src={logo} />
-          <h1>AI Voice Assistant</h1>
+        <div className="flex items-center justify-between w-full m-4 pb-2 border-0 border-b border-solid border-gray-200">
+          <div className="flex items-center gap-4">
+            <img style={{ width: "24px" }} src={logo} />
+            <h1>AI Voice Assistant</h1>
+          </div>
+          <a 
+            href="/call-summary-page" 
+            className="text-sm text-blue-600 hover:text-blue-800"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            View Call Summary
+          </a>
         </div>
       </nav>
       <main className="absolute top-16 left-0 right-0 bottom-0 bg-white">
@@ -189,6 +227,7 @@ export default function App() {
             sendTextMessage={sendTextMessage}
             events={events}
             isSessionActive={isSessionActive}
+            sessionId={sessionId}
           />
         </section>
       </main>
