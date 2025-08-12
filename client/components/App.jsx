@@ -11,6 +11,8 @@ export default function App() {
   const audioElement = useRef(null);
   const [assistantMessage, setAssistantMessage] = useState("Hello! I'm your AI voice assistant. Click 'start session' to begin.");
   const [sessionId, setSessionId] = useState(null);
+  const [timeRemaining, setTimeRemaining] = useState(60);
+  const [showHandoffMessage, setShowHandoffMessage] = useState(false);
 
   async function startSession() {
     try {
@@ -72,13 +74,13 @@ export default function App() {
   }
 
   // Stop current session, clean up peer connection and data channel
-  function stopSession() {
+  function stopSession(queryType = 'unknown') {
     // Log session end
     if (sessionId) {
       fetch('/end-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId })
+        body: JSON.stringify({ sessionId, queryType })
       })
       .then(res => res.json())
       .then(data => {
@@ -104,6 +106,8 @@ export default function App() {
     setDataChannel(null);
     peerConnection.current = null;
     setSessionId(null);
+    setTimeRemaining(60);
+    setShowHandoffMessage(false);
     setAssistantMessage("Session ended. Click 'start session' to begin a new conversation.");
   }
 
@@ -179,6 +183,7 @@ export default function App() {
         setIsSessionActive(true);
         setEvents([]);
         setAssistantMessage("Connected! I'm listening...");
+        setTimeRemaining(60);
         
         // Send an initial message to trigger the assistant's introduction
         setTimeout(() => {
@@ -187,6 +192,25 @@ export default function App() {
       });
     }
   }, [dataChannel]);
+
+  // Timer and handoff detection
+  useEffect(() => {
+    let timer;
+    if (isSessionActive && sessionId) {
+      timer = setInterval(() => {
+        setTimeRemaining(prev => {
+          if (prev <= 1) {
+            setShowHandoffMessage(true);
+            setAssistantMessage("Time up! Connecting you to our human agent...");
+            setTimeout(() => stopSession('time_limit'), 2000);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [isSessionActive, sessionId]);
 
   return (
     <>
@@ -213,9 +237,26 @@ export default function App() {
             <h2 className="text-2xl font-bold mb-4">AI Voice Assistant</h2>
             <p className="text-gray-600 mb-6">{assistantMessage}</p>
             {isSessionActive && (
-              <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center animate-pulse">
-                <div className="w-8 h-8 rounded-full bg-green-400"></div>
-              </div>
+              <>
+                <div className="mb-4">
+                  <div className={`text-2xl font-bold ${
+                    timeRemaining <= 10 ? 'text-red-500' : 
+                    timeRemaining <= 30 ? 'text-yellow-500' : 'text-green-500'
+                  }`}>
+                    {Math.floor(timeRemaining / 60)}:{(timeRemaining % 60).toString().padStart(2, '0')}
+                  </div>
+                  <div className="text-sm text-gray-500">Time remaining</div>
+                </div>
+                {showHandoffMessage ? (
+                  <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center animate-pulse">
+                    <div className="w-8 h-8 rounded-full bg-blue-400"></div>
+                  </div>
+                ) : (
+                  <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center animate-pulse">
+                    <div className="w-8 h-8 rounded-full bg-green-400"></div>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </section>
@@ -228,6 +269,8 @@ export default function App() {
             events={events}
             isSessionActive={isSessionActive}
             sessionId={sessionId}
+            timeRemaining={timeRemaining}
+            showHandoffMessage={showHandoffMessage}
           />
         </section>
       </main>

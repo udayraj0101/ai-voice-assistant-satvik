@@ -30,5 +30,27 @@
     "estimatedCost": 0.1281,
     "userIP": "::1",
     "status": "user-ended"
+  },
+  {
+    "sessionId": "607a0ac9-133d-4745-a4e4-85c8445e7b1f",
+    "timestamp": "2025-08-12T06:10:59.441Z",
+    "duration": 1.04,
+    "estimatedCost": 0.3106,
+    "userIP": "::1",
+    "status": "time_limit_handoff",
+    "needsHandoff": true,
+    "handoffReason": "time_limit_exceeded",
+    "queryType": "unknown"
+  },
+  {
+    "sessionId": "9d1779eb-ec21-439d-877f-101564c857ba",
+    "timestamp": "2025-08-12T06:19:53.793Z",
+    "duration": 1.02,
+    "estimatedCost": 0.3059,
+    "userIP": "::1",
+    "status": "time_limit_handoff",
+    "needsHandoff": true,
+    "handoffReason": "time_limit_exceeded",
+    "queryType": "unknown"
   }
 ]

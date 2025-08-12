@@ -62,22 +62,52 @@
 
             {callSummary ? (
               <>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                   <div className="bg-blue-50 p-6 rounded-lg">
                     <h3 className="text-lg font-semibold text-blue-800">Total Calls</h3>
                     <p className="text-3xl font-bold text-blue-600">{callSummary.totalCalls}</p>
                   </div>
                   <div className="bg-green-50 p-6 rounded-lg">
-                    <h3 className="text-lg font-semibold text-green-800">Total Duration</h3>
-                    <p className="text-3xl font-bold text-green-600">{Math.floor(callSummary.totalDuration)}m {Math.round((callSummary.totalDuration % 1) * 60)}s</p>
+                    <h3 className="text-lg font-semibold text-green-800">Quick Resolved</h3>
+                    <p className="text-3xl font-bold text-green-600">{callSummary.quickResolved || 0}</p>
+                    <p className="text-sm text-green-600">Under 1 minute</p>
                   </div>
-                  <div className="bg-purple-50 p-6 rounded-lg">
-                    <h3 className="text-lg font-semibold text-purple-800">Total Cost</h3>
-                    <p className="text-3xl font-bold text-purple-600">${callSummary.totalCost}</p>
+                  <div className="bg-red-50 p-6 rounded-lg">
+                    <h3 className="text-lg font-semibold text-red-800">Human Handoffs</h3>
+                    <p className="text-3xl font-bold text-red-600">{callSummary.handoffCalls || 0}</p>
+                    <p className="text-sm text-red-600">{callSummary.handoffRate || 0}% of calls</p>
                   </div>
-                  <div className="bg-orange-50 p-6 rounded-lg">
-                    <h3 className="text-lg font-semibold text-orange-800">Avg Cost/Call</h3>
-                    <p className="text-3xl font-bold text-orange-600">${callSummary.avgCost}</p>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                  <div className="bg-white border rounded-lg p-6">
+                    <h3 className="text-lg font-semibold mb-4">Cost Analysis</h3>
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span>Total Cost:</span>
+                        <span className="font-bold">${callSummary.totalCost}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Avg Cost/Call:</span>
+                        <span className="font-bold">${callSummary.avgCost}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Total Duration:</span>
+                        <span className="font-bold">{Math.floor(callSummary.totalDuration)}m {Math.round((callSummary.totalDuration % 1) * 60)}s</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-white border rounded-lg p-6">
+                    <h3 className="text-lg font-semibold mb-4">Query Types</h3>
+                    <div className="space-y-2">
+                      {Object.entries(callSummary.queryTypes || {}).map(([type, count]) => (
+                        <div key={type} className="flex justify-between">
+                          <span className="capitalize">{type.replace('_', ' ')}:</span>
+                          <span className="font-bold">{count}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
 
@@ -92,8 +122,9 @@
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Session ID</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Timestamp</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Duration</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cost</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Query Type</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Handoff</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-200">
@@ -108,17 +139,30 @@
                             <td className="px-6 py-4 text-sm text-gray-900">
                               {Math.floor(call.duration)}m {Math.round((call.duration % 1) * 60)}s
                             </td>
-                            <td className="px-6 py-4 text-sm text-gray-900">
-                              ${call.estimatedCost}
+                            <td className="px-6 py-4 text-sm text-gray-900 capitalize">
+                              {(call.queryType || 'unknown').replace('_', ' ')}
                             </td>
                             <td className="px-6 py-4 text-sm">
                               <span className={`px-2 py-1 text-xs rounded-full ${
-                                call.status === 'user-ended' 
+                                call.status === 'quick_resolved' 
                                   ? 'bg-green-100 text-green-800' 
+                                  : call.status === 'time_limit_handoff'
+                                  ? 'bg-red-100 text-red-800'
                                   : 'bg-yellow-100 text-yellow-800'
                               }`}>
-                                {call.status}
+                                {call.status.replace('_', ' ')}
                               </span>
+                            </td>
+                            <td className="px-6 py-4 text-sm">
+                              {call.needsHandoff ? (
+                                <span className="px-2 py-1 text-xs rounded-full bg-red-100 text-red-800">
+                                  Yes
+                                </span>
+                              ) : (
+                                <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">
+                                  No
+                                </span>
+                              )}
                             </td>
                           </tr>
                         ))}
