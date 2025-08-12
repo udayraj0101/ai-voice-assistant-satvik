@@ -239,6 +239,20 @@ async function startServer() {
     }
   });
 
+  // Get raw call logs data as JSON
+  app.get("/call-logs", (req, res) => {
+    try {
+      let logs = [];
+      if (fs.existsSync(callLogFile)) {
+        logs = JSON.parse(fs.readFileSync(callLogFile, 'utf8'));
+      }
+      res.json(logs);
+    } catch (error) {
+      console.error('Error reading call logs:', error);
+      res.status(500).json({ error: 'Failed to read call logs' });
+    }
+  });
+
   if (isDev) {
     app.use("*", async (req, res, next) => {
       const url = req.originalUrl;
