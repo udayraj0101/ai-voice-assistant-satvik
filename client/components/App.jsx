@@ -16,9 +16,12 @@ export default function App() {
 
   async function startSession() {
     try {
+      console.log('Starting session...');
       // Get a session token for OpenAI Realtime API
       const tokenResponse = await fetch("/token");
       const data = await tokenResponse.json();
+      
+      console.log('Token response:', data);
       
       if (!data.client_secret?.value) {
         throw new Error('Invalid token response');
@@ -30,15 +33,29 @@ export default function App() {
     // Create a peer connection
     const pc = new RTCPeerConnection();
 
+    // Add connection state logging
+    pc.onconnectionstatechange = () => {
+      console.log('Connection state:', pc.connectionState);
+    };
+
+    pc.oniceconnectionstatechange = () => {
+      console.log('ICE connection state:', pc.iceConnectionState);
+    };
+
     // Set up to play remote audio from the model
     audioElement.current = document.createElement("audio");
     audioElement.current.autoplay = true;
-    pc.ontrack = (e) => (audioElement.current.srcObject = e.streams[0]);
+    pc.ontrack = (e) => {
+      console.log('Received audio track');
+      audioElement.current.srcObject = e.streams[0];
+    };
 
     // Add local audio track for microphone input in the browser
+    console.log('Requesting microphone access...');
     const ms = await navigator.mediaDevices.getUserMedia({
       audio: true,
     });
+    console.log('Microphone access granted');
     pc.addTrack(ms.getTracks()[0]);
 
     // Set up data channel for sending and receiving events
@@ -49,6 +66,7 @@ export default function App() {
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
 
+    console.log('Connecting to OpenAI Realtime API...');
     const baseUrl = "https://api.openai.com/v1/realtime";
     const model = "gpt-4o-realtime-preview-2024-12-17";
     const sdpResponse = await fetch(`${baseUrl}?model=${model}`, {
@@ -60,16 +78,21 @@ export default function App() {
       },
     });
 
+    if (!sdpResponse.ok) {
+      throw new Error(`SDP request failed: ${sdpResponse.status} ${sdpResponse.statusText}`);
+    }
+
     const answer = {
       type: "answer",
       sdp: await sdpResponse.text(),
     };
     await pc.setRemoteDescription(answer);
+    console.log('WebRTC connection established');
 
     peerConnection.current = pc;
     } catch (error) {
       console.error('Failed to start session:', error);
-      setAssistantMessage('Sorry, failed to start session. Please try again.');
+      setAssistantMessage(`Error: ${error.message}. Please check console and try again.`);
     }
   }
 
@@ -180,6 +203,7 @@ export default function App() {
 
       // Set session active when the data channel is opened
       dataChannel.addEventListener("open", () => {
+        console.log('Data channel opened - session is now active');
         setIsSessionActive(true);
         setEvents([]);
         setAssistantMessage("Connected! I'm listening...");
@@ -187,8 +211,18 @@ export default function App() {
         
         // Send an initial message to trigger the assistant's introduction
         setTimeout(() => {
+          console.log('Sending initial response.create event');
           sendClientEvent({ type: "response.create" });
         }, 1000);
+      });
+
+      dataChannel.addEventListener("error", (error) => {
+        console.error('Data channel error:', error);
+        setAssistantMessage('Connection error. Please try again.');
+      });
+
+      dataChannel.addEventListener("close", () => {
+        console.log('Data channel closed');
       });
     }
   }, [dataChannel]);

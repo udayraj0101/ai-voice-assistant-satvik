@@ -52,5 +52,47 @@
     "needsHandoff": true,
     "handoffReason": "time_limit_exceeded",
     "queryType": "unknown"
+  },
+  {
+    "sessionId": "a07df90e-1922-4a13-b70f-b1c40497e540",
+    "timestamp": "2025-08-13T14:40:20.661Z",
+    "duration": 0.28,
+    "estimatedCost": 0.0852,
+    "userIP": "::1",
+    "status": "quick_resolved",
+    "needsHandoff": false,
+    "handoffReason": null,
+    "queryType": "pricing"
+  },
+  {
+    "sessionId": "9cc1db65-ee54-45fb-9e82-7658deffce1f",
+    "timestamp": "2025-08-13T14:50:22.872Z",
+    "duration": 0.25,
+    "estimatedCost": 0.0755,
+    "userIP": "::1",
+    "status": "quick_resolved",
+    "needsHandoff": false,
+    "handoffReason": null,
+    "queryType": "pricing"
+  },
+  {
+    "sessionId": "d5141498-11ec-497f-9605-913321c76fa6",
+    "timestamp": "2025-08-13T14:56:42.869Z",
+    "duration": 0.22,
+    "estimatedCost": 0.0662,
+    "userIP": "::1",
+    "status": "quick_resolved",
+    "queryType": "technical"
+  },
+  {
+    "sessionId": "43593b9a-69c0-42df-9d09-1314fcc00f9b",
+    "timestamp": "2025-08-14T07:38:41.839Z",
+    "duration": 0.36,
+    "estimatedCost": 0.109,
+    "userIP": "::1",
+    "status": "quick_resolved",
+    "needsHandoff": false,
+    "handoffReason": null,
+    "queryType": "technical"
   }
 ]
